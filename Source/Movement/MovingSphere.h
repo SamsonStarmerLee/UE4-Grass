@@ -68,9 +68,6 @@ public:
 	UStaticMeshComponent* Body;
 
 	UPROPERTY(EditAnywhere)
-	USphereComponent* Overlap;
-
-	UPROPERTY(EditAnywhere)
 	float Skin = 52.f;
 
 	UPROPERTY(EditAnywhere)
