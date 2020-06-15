@@ -24,11 +24,6 @@ AMovingSphere::AMovingSphere()
 	Body->BodyInstance.bLockXRotation = true;
 	Body->BodyInstance.bLockYRotation = true;
 	Body->BodyInstance.bLockZRotation = true;
-
-	Overlap = CreateDefaultSubobject<USphereComponent>(TEXT("Overlap"));
-	Overlap->SetupAttachment(RootComponent);
-	Overlap->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	Overlap->SetCollisionProfileName("OverlapAllDynamic");
 }
 
 void AMovingSphere::BeginPlay()
@@ -36,10 +31,6 @@ void AMovingSphere::BeginPlay()
 	Super::BeginPlay();
 
 	minGroundDotProduct = FMath::Cos(FMath::DegreesToRadians(maxGroundAngle));
-
-	Body->OnComponentHit.AddDynamic(this, &AMovingSphere::OnHit);
-	Overlap->OnComponentBeginOverlap.AddDynamic(this, &AMovingSphere::OnOverlapEnter);
-	Overlap->OnComponentEndOverlap.AddDynamic(this, &AMovingSphere::OnOverlapExit);
 
 	material = UMaterialInstanceDynamic::Create(Body->GetMaterial(0), this);
 	Body->SetMaterial(0, material);
@@ -93,13 +84,6 @@ void AMovingSphere::UpdateState()
 			GroundChannel,
 			FCollisionShape::MakeSphere(Skin),
 			TraceParams);
-
-		DrawDebugSphere(
-			GetWorld(),
-			GetPosition(),
-			Skin,
-			10,
-			FColor::White);
 
 		if (hit)
 		{
@@ -310,83 +294,46 @@ void AMovingSphere::ProbeGround()
 		{
 			FVector direction = FQuat::MakeFromEuler(FVector(0.f, i * division, z * division)).Vector().GetSafeNormal();
 
-			DrawDebugLine(
-				GetWorld(),
-				GetPosition(),
-				GetPosition() + (direction * 70.f),
-				FColor::Blue,
-				false, -1.f, '\000', 3.f);
+			// Test for surfaces
+			{
+				FHitResult Hit;
+				FCollisionQueryParams TraceParams(FName(TEXT("Ground Trace")), false, this);
+
+				if (GetWorld()->LineTraceSingleByChannel(
+					OUT Hit,
+					GetPosition(), GetPosition() + direction * Skin,
+					GroundChannel,
+					TraceParams))
+				{
+					if (Hit.Normal.Z >= minGroundDotProduct)
+					{
+						groundContactCount++;
+						contactNormal += Hit.Normal;
+
+						if (ShowDebugNormals) DrawDebugLine(
+							GetWorld(),
+							Hit.Location,
+							Hit.Location + Hit.Normal * 50.f,
+							FColor::Green,
+							false, -1.f, '\000', 10.f);
+					}
+					else if (Hit.Normal.Z > -0.01f)
+					{
+						steepContactCount++;
+						steepNormal += Hit.Normal;
+
+						if (ShowDebugNormals) DrawDebugLine(
+							GetWorld(),
+							Hit.Location,
+							Hit.Location + Hit.Normal * 50.f,
+							FColor::Red,
+							false, -1.f, '\000', 10.f);
+					}
+				}
+			}
 		}
 	}
 }
-
-void AMovingSphere::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
-{
-	EvaluateCollision(HitComp, OtherActor, OtherComp, NormalImpulse, Hit);
-}
-
-void AMovingSphere::OnOverlapEnter(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Overlap Enter"));
-}
-
-void AMovingSphere::OnOverlapExit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Overlap Exit"));
-}
-
-void AMovingSphere::EvaluateCollision(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
-{
-	//TArray<FHitResult> HitOut;
-	//FHitResult EmptyHit;
-	//FCollisionQueryParams TraceParams(FName(TEXT("Ground Trace")), false, this);
-
-	//bool hit = GetWorld()->SweepMultiByChannel(
-	//	HitOut,
-	//	GetPosition(), GetPosition(), FQuat::Identity,
-	//	GroundChannel,
-	//	FCollisionShape::MakeSphere(Skin),
-	//	TraceParams);
-
-	//DrawDebugSphere(
-	//	GetWorld(),
-	//	meshCentre,
-	//	Skin,
-	//	10,
-	//	FColor::White);
-
-	//if (hit)
-	//{
-	//	for (FHitResult h : HitOut)
-	//	{
-	//		if (h.Normal.Z >= minGroundDotProduct)
-	//		{
-	//			groundContactCount++;
-	//			contactNormal += h.Normal;
-
-	//			DrawDebugLine(
-	//				GetWorld(),
-	//				h.Location,
-	//				h.Location + h.Normal * 50.f,
-	//				FColor::Green,
-	//				false, -1.f, '\000', 10.f);
-	//		}
-	//		else if (h.Normal.Z > -0.01f)
-	//		{
-	//			steepContactCount++;
-	//			steepNormal += h.Normal;
-
-	//			DrawDebugLine(
-	//				GetWorld(),
-	//				h.Location,
-	//				h.Location + h.Normal * 50.f,
-	//				FColor::Red,
-	//				false, -1.f, '\000', 10.f);
-	//		}
-	//	}
-	//}
-}
-
 void AMovingSphere::Move_XAxis(float AxisValue)
 {
 	// Move at 100 units per second forward of backward
@@ -419,3 +366,93 @@ void AMovingSphere::PostEditChangeProperty(struct FPropertyChangedEvent& args)
 	}
 }
 #endif
+
+
+
+
+
+//// Collision handling
+//UFUNCTION()
+//void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+//UFUNCTION()
+//void OnOverlapEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+//UFUNCTION()
+//void OnOverlapExit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+//
+//void EvaluateCollision(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+//Overlap = CreateDefaultSubobject<USphereComponent>(TEXT("Overlap"));
+//Overlap->SetupAttachment(RootComponent);
+//Overlap->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+//Overlap->SetCollisionProfileName("OverlapAllDynamic");
+
+//Body->OnComponentHit.AddDynamic(this, &AMovingSphere::OnHit);
+//Overlap->OnComponentBeginOverlap.AddDynamic(this, &AMovingSphere::OnOverlapEnter);
+//Overlap->OnComponentEndOverlap.AddDynamic(this, &AMovingSphere::OnOverlapExit);
+
+//void AMovingSphere::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+//{
+//	//EvaluateCollision(HitComp, OtherActor, OtherComp, NormalImpulse, Hit);
+//}
+//
+//void AMovingSphere::OnOverlapEnter(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+//{
+//	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Overlap Enter"));
+//}
+//
+//void AMovingSphere::OnOverlapExit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+//{
+//	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Overlap Exit"));
+//}
+//
+//void AMovingSphere::EvaluateCollision(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+//{
+//	//TArray<FHitResult> HitOut;
+//	//FHitResult EmptyHit;
+//	//FCollisionQueryParams TraceParams(FName(TEXT("Ground Trace")), false, this);
+//
+//	//bool hit = GetWorld()->SweepMultiByChannel(
+//	//	HitOut,
+//	//	GetPosition(), GetPosition(), FQuat::Identity,
+//	//	GroundChannel,
+//	//	FCollisionShape::MakeSphere(Skin),
+//	//	TraceParams);
+//
+//	//DrawDebugSphere(
+//	//	GetWorld(),
+//	//	meshCentre,
+//	//	Skin,
+//	//	10,
+//	//	FColor::White);
+//
+//	//if (hit)
+//	//{
+//	//	for (FHitResult h : HitOut)
+//	//	{
+//	//		if (h.Normal.Z >= minGroundDotProduct)
+//	//		{
+//	//			groundContactCount++;
+//	//			contactNormal += h.Normal;
+//
+//	//			DrawDebugLine(
+//	//				GetWorld(),
+//	//				h.Location,
+//	//				h.Location + h.Normal * 50.f,
+//	//				FColor::Green,
+//	//				false, -1.f, '\000', 10.f);
+//	//		}
+//	//		else if (h.Normal.Z > -0.01f)
+//	//		{
+//	//			steepContactCount++;
+//	//			steepNormal += h.Normal;
+//
+//	//			DrawDebugLine(
+//	//				GetWorld(),
+//	//				h.Location,
+//	//				h.Location + h.Normal * 50.f,
+//	//				FColor::Red,
+//	//				false, -1.f, '\000', 10.f);
+//	//		}
+//	//	}
+//	//}
+//}

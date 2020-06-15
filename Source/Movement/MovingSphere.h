@@ -33,16 +33,6 @@ public:
 
 	void ClearState();
 
-	// Collision handling
-	UFUNCTION()
-	void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
-	UFUNCTION()
-	void OnOverlapEnter(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-	UFUNCTION()
-	void OnOverlapExit(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	void EvaluateCollision(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
-
 	// Input functions
 	void Move_XAxis(float AxisValue);
 	void Move_YAxis(float AxisValue);
@@ -109,4 +99,7 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	uint32 MaxAirJumps = 0;
+
+	UPROPERTY(EditAnywhere)
+	bool ShowDebugNormals;
 };
