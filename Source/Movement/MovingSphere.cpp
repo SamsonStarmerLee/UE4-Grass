@@ -73,49 +73,7 @@ void AMovingSphere::UpdateState()
 	stepsSinceLastGrounded++;
 	stepsSinceLastJump++;
 
-	// Test for new collisions
-	{
-		TArray<FHitResult> HitOut;
-		FCollisionQueryParams TraceParams(FName(TEXT("Ground Trace")), false, this);
-
-		bool hit = GetWorld()->SweepMultiByChannel(
-			HitOut,
-			GetPosition(), GetPosition(), FQuat::Identity,
-			GroundChannel,
-			FCollisionShape::MakeSphere(Skin),
-			TraceParams);
-
-		if (hit)
-		{
-			for (FHitResult h : HitOut)
-			{
-				if (h.Normal.Z >= minGroundDotProduct)
-				{
-					groundContactCount++;
-					contactNormal += h.Normal;
-
-					DrawDebugLine(
-						GetWorld(),
-						h.Location,
-						h.Location + h.Normal * 50.f,
-						FColor::Green,
-						false, -1.f, '\000', 10.f);
-				}
-				else if (h.Normal.Z > -0.01f)
-				{
-					steepContactCount++;
-					steepNormal += h.Normal;
-
-					DrawDebugLine(
-						GetWorld(),
-						h.Location,
-						h.Location + h.Normal * 50.f,
-						FColor::Red,
-						false, -1.f, '\000', 10.f);
-				}
-			}
-		}
-	}
+	ProbeGround();
 
 	if (GetGrounded() || SnapToGround())
 	{
