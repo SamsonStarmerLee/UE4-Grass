@@ -75,7 +75,7 @@ void AMovingSphere::UpdateState()
 
 	ProbeGround();
 
-	if (GetGrounded() || SnapToGround())
+	if (GetGrounded() || SnapToGround()) 
 	{
 		stepsSinceLastGrounded = 0;
 		jumpPhase = 0;
@@ -133,8 +133,7 @@ FVector AMovingSphere::GetPosition()
 void AMovingSphere::Jump()
 {
 	FVector jumpDirection;
-
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, GetOnSteep() ? "ON STEEP" : "NOT");
+	
 	if (GetGrounded())
 	{
 		jumpDirection = contactNormal;
@@ -205,13 +204,14 @@ bool AMovingSphere::SnapToGround()
 
 	// Raycast to find ground surface
 	FHitResult Hit;
-	FCollisionQueryParams TraceParams(FName(TEXT("")), false, this);
+	FCollisionQueryParams TraceParams(FName(TEXT("SnapToGround Trace")), false, this);
+	FVector direction = (FVector::DownVector * MaxSpeed);
 
-	if (!GetWorld()->LineTraceSingleByObjectType(
+	if (!GetWorld()->LineTraceSingleByChannel(
 		OUT Hit,
 		GetPosition(),
-		GetPosition() + FVector::DownVector * Skin,
-		FCollisionObjectQueryParams(GroundChannel),
+		GetPosition() + direction,
+		GroundChannel,
 		TraceParams
 	))
 	{
@@ -225,7 +225,6 @@ bool AMovingSphere::SnapToGround()
 
 	// If we reach here, we've just lost contact with the ground, but are
 	// above ground just below us.
-
 	groundContactCount = 1;
 	contactNormal = Hit.Normal;
 
@@ -235,7 +234,7 @@ bool AMovingSphere::SnapToGround()
 	// Only re-align if we are moving up away from the surface.
 	if (dot > 0.f)
 	{
-		velocity = (velocity - Hit.Normal * dot).GetSafeNormal() *speed;
+		velocity = (velocity - Hit.Normal * dot).GetSafeNormal() * speed;
 	}
 
 	return true;
@@ -259,7 +258,8 @@ void AMovingSphere::ProbeGround()
 
 				if (GetWorld()->LineTraceSingleByChannel(
 					OUT Hit,
-					GetPosition(), GetPosition() + direction * Skin,
+					GetPosition(), 
+					GetPosition() + direction * Skin,
 					GroundChannel,
 					TraceParams))
 				{
