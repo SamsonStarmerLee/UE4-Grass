@@ -3,12 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Pawn.h"
-#include "Components/SphereComponent.h"
+#include "Camera/CameraActorInterface.h"
+#include "Camera\PlayerCharacterInterface.h"
 #include "MovingSphere.generated.h"
 
+class ACameraModificationVolume;
+class UExpSpringArmComponent;
+class UCameraComponent;
+
 UCLASS()
-class MOVEMENT_API AMovingSphere : public APawn
+class MOVEMENT_API AMovingSphere : public APawn, public IPlayerCharacterInterface, public ICameraActorInterface
 {
 	GENERATED_BODY()
 
@@ -32,6 +36,13 @@ public:
 	void AdjustVelocity(const float DeltaTime);
 
 	void ClearState();
+
+	// PlayerCharacterInterface
+	bool GotMovementInput() const override;
+
+	// CameraActorInterface
+	ACameraModificationVolume* GetCurrentCameraModificationVolume() override;
+	void SetCurrentCameraModificationVolume(ACameraModificationVolume* Volume) override;
 
 	// Input functions
 	void Move_XAxis(float AxisValue);
@@ -64,11 +75,17 @@ public:
 	uint32 stepsSinceLastGrounded;
 	uint32 stepsSinceLastJump;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* Body;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UExpSpringArmComponent* SpringArm;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UCameraComponent* Camera;
+
 	UPROPERTY(EditAnywhere)
-	float Skin = 52.f;
+	float Skin = 54.f;
 
 	UPROPERTY(EditAnywhere)
 	float MaxSpeed = 1000.0f;
@@ -86,7 +103,7 @@ public:
 	TEnumAsByte<ECollisionChannel> GroundChannel;
 
 	UPROPERTY(EditAnywhere)
-	float AirAcceleration = 500.0f;
+	float AirAcceleration = 200.0f;
 
 	UPROPERTY(EditAnywhere, meta = (UIMin = "0.0", UIMax = "1000.0"))
 	float MaxSnapSpeed = 1000.f;

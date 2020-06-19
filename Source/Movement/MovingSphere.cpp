@@ -1,7 +1,12 @@
 #include "MovingSphere.h"
 #include "Camera/CameraComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Movement/Camera/ExpSpringArmComponent.h"
+#include "Camera/CameraComponent.h"
 #include "DrawDebugHelpers.h"
+
+//#include "GameFramework/Pawn.h"
+//#include "Components/SphereComponent.h"
 
 AMovingSphere::AMovingSphere()
 {
@@ -14,10 +19,16 @@ AMovingSphere::AMovingSphere()
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("RootComponent"));
 	RootComponent = Body;
 
-	UCameraComponent* camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	camera->SetupAttachment(RootComponent);
-	camera->SetRelativeLocation(FVector(-350.0f, 0.0f, 350.0f));
-	camera->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
+	SpringArm = CreateDefaultSubobject<UExpSpringArmComponent>(TEXT("Camera Boom"));
+	SpringArm->SetupAttachment(RootComponent);
+	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, 50.f));
+	SpringArm->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
+	SpringArm->bEnableCameraLag = true;
+	SpringArm->CameraLagSpeed = 3.f;
+	SpringArm->bUsePawnControlRotation = true;
+
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
 	Body->SetSimulatePhysics(true);
 	Body->BodyInstance.SetMassOverride(10.0f);
@@ -123,6 +134,20 @@ void AMovingSphere::ClearState()
 {
 	groundContactCount = steepContactCount = 0;
 	contactNormal = steepNormal = FVector::ZeroVector;
+}
+
+bool AMovingSphere::GotMovementInput() const
+{
+	return !input.IsNearlyZero();
+}
+
+ACameraModificationVolume* AMovingSphere::GetCurrentCameraModificationVolume()
+{
+	return nullptr;
+}
+
+void AMovingSphere::SetCurrentCameraModificationVolume(ACameraModificationVolume* Volume)
+{
 }
 
 FVector AMovingSphere::GetPosition()
