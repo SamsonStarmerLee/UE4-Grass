@@ -21,13 +21,25 @@ public:
 	AMovingSphere();
 
 protected:
+	ACameraModificationVolume* CurrentCameraVolume;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
+		UExpSpringArmComponent* CameraBoom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
+		UCameraComponent* Camera;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	void TurnAtRate(float Rate);
+
+	void LookUpAtRate(float Rate);
 
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent);
 
@@ -41,15 +53,15 @@ public:
 	bool GotMovementInput() const override;
 
 	// CameraActorInterface
-	ACameraModificationVolume* GetCurrentCameraModificationVolume() override;
-	void SetCurrentCameraModificationVolume(ACameraModificationVolume* Volume) override;
+	virtual ACameraModificationVolume* GetCurrentCameraModificationVolume() override;
+	virtual void SetCurrentCameraModificationVolume(ACameraModificationVolume* Volume) override;
 
 	// Input functions
 	void Move_XAxis(float AxisValue);
 	void Move_YAxis(float AxisValue);
 	void InputJump();
 
-	// Movement functions
+	// Movement functions 
 	FVector GetPosition();
 	void Jump();
 	bool GetGrounded();
@@ -78,12 +90,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* Body;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UExpSpringArmComponent* SpringArm;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UCameraComponent* Camera;
-
 	UPROPERTY(EditAnywhere)
 	float Skin = 54.f;
 
@@ -105,6 +111,9 @@ public:
 	UPROPERTY(EditAnywhere)
 	float AirAcceleration = 200.0f;
 
+	UPROPERTY(EditAnywhere, meta = (UIMin = "0.0"))
+	float ProbeDistance = 100.0f;
+
 	UPROPERTY(EditAnywhere, meta = (UIMin = "0.0", UIMax = "1000.0"))
 	float MaxSnapSpeed = 1000.f;
 
@@ -116,4 +125,12 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	bool ShowDebugNormals;
+
+	/** Camera turn rate in deg/sec. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
+		float BaseTurnRate = 90.0f;
+
+	/** Camera turn rate in deg/sec. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
+		float BaseLookUpRate = 90.0f;
 };

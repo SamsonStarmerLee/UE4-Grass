@@ -19,16 +19,14 @@ AMovingSphere::AMovingSphere()
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("RootComponent"));
 	RootComponent = Body;
 
-	SpringArm = CreateDefaultSubobject<UExpSpringArmComponent>(TEXT("Camera Boom"));
-	SpringArm->SetupAttachment(RootComponent);
-	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, 50.f));
-	SpringArm->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
-	SpringArm->bEnableCameraLag = true;
-	SpringArm->CameraLagSpeed = 3.f;
-	SpringArm->bUsePawnControlRotation = true;
+	CameraBoom = CreateDefaultSubobject<UExpSpringArmComponent>(TEXT("Camera Boom"));
+	CameraBoom->SetupAttachment(RootComponent);
+	CameraBoom->TargetArmLength = 300.0f;
+	CameraBoom->bUsePawnControlRotation = true;
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
+	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
+	Camera->bUsePawnControlRotation = false;
 
 	Body->SetSimulatePhysics(true);
 	Body->BodyInstance.SetMassOverride(10.0f);
@@ -55,6 +53,24 @@ void AMovingSphere::SetupPlayerInputComponent(class UInputComponent* PlayerInput
 	InputComponent->BindAxis("MoveY", this, &AMovingSphere::Move_YAxis);
 
 	InputComponent->BindAction("Jump", IE_Pressed, this, &AMovingSphere::InputJump);
+
+	// Two variations of rotation bindings to handle different kinds of devices.
+	// "turn" handles devices with an absolute delta, such as mouse.
+	// "turnrate" is for devices we choose to treat as a rate of change, such as a stick.
+	InputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	InputComponent->BindAxis("TurnRate", this, &AMovingSphere::TurnAtRate);
+	InputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	InputComponent->BindAxis("LookUpRAte", this, &AMovingSphere::LookUpAtRate);
+}
+
+void AMovingSphere::TurnAtRate(float Rate)
+{
+	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+}
+
+void AMovingSphere::LookUpAtRate(float Rate)
+{
+	AddControllerPitchInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
 }
 
 void AMovingSphere::Tick(float DeltaTime)
@@ -132,7 +148,8 @@ void AMovingSphere::AdjustVelocity(const float DeltaTime)
 
 void AMovingSphere::ClearState()
 {
-	groundContactCount = steepContactCount = 0;
+	groundContactCount = 0;
+	steepContactCount = 0;
 	contactNormal = steepNormal = FVector::ZeroVector;
 }
 
@@ -143,11 +160,12 @@ bool AMovingSphere::GotMovementInput() const
 
 ACameraModificationVolume* AMovingSphere::GetCurrentCameraModificationVolume()
 {
-	return nullptr;
+	return CurrentCameraVolume;
 }
 
 void AMovingSphere::SetCurrentCameraModificationVolume(ACameraModificationVolume* Volume)
 {
+	CurrentCameraVolume = Volume;
 }
 
 FVector AMovingSphere::GetPosition()
@@ -230,9 +248,9 @@ bool AMovingSphere::SnapToGround()
 	// Raycast to find ground surface
 	FHitResult Hit;
 	FCollisionQueryParams TraceParams(FName(TEXT("SnapToGround Trace")), false, this);
-	FVector direction = (FVector::DownVector * MaxSpeed);
+	FVector direction = (FVector::DownVector * ProbeDistance);
 
-	if (!GetWorld()->LineTraceSingleByChannel(
+	if (GetWorld()->LineTraceSingleByChannel(
 		OUT Hit,
 		GetPosition(),
 		GetPosition() + direction,
@@ -240,29 +258,29 @@ bool AMovingSphere::SnapToGround()
 		TraceParams
 	))
 	{
-		return false;
+		if (Hit.Normal.Z < minGroundDotProduct)
+		{
+			return false;
+		}
+
+		// If we reach here, we've just lost contact with the ground, but are
+		// above ground just below us.
+		groundContactCount = 1;
+		contactNormal = Hit.Normal;
+
+		// Adjust velocity to align with the ground.
+		float dot = FVector::DotProduct(velocity, Hit.Normal);
+
+		// Only re-align if we are moving up away from the surface.
+		if (dot > 0.f)
+		{
+			velocity = (velocity - Hit.Normal * dot).GetSafeNormal() * speed;
+		}
+
+		return true;
 	}
 
-	if (Hit.Normal.Z < minGroundDotProduct)
-	{
-		return false;
-	}
-
-	// If we reach here, we've just lost contact with the ground, but are
-	// above ground just below us.
-	groundContactCount = 1;
-	contactNormal = Hit.Normal;
-
-	// Adjust velocity to align with the ground.
-	float dot = FVector::DotProduct(velocity, Hit.Normal);
-
-	// Only re-align if we are moving up away from the surface.
-	if (dot > 0.f)
-	{
-		velocity = (velocity - Hit.Normal * dot).GetSafeNormal() * speed;
-	}
-
-	return true;
+	return false;
 }
 
 void AMovingSphere::ProbeGround()
