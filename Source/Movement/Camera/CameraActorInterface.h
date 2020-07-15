@@ -14,7 +14,7 @@ class UCameraActorInterface : public UInterface
 };
 
 /**
- *
+ * Interface for actors that can enter camera modification volumes.
  */
 class MOVEMENT_API ICameraActorInterface
 {
