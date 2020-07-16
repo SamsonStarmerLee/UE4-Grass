@@ -22,8 +22,6 @@ bool UCameraModifierApplyPitchCurves::ModifyCamera(float DeltaTime, struct FMini
 	const float pitchToDistance = IsValid(PitchToDistanceCurve) ? PitchToDistanceCurve->GetFloatValue(cameraRotation.Pitch) : 0.0f;
 	const float pitchToFov = IsValid(PitchToFOVCurve) ? PitchToFOVCurve->GetFloatValue(cameraRotation.Pitch) : 0.0f;
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::SanitizeFloat(pitchToFov));
-
 	// Drive camera away based on evaluated curve.
 	const FVector desiredLocation =
 		cameraLocation - cameraRotation.RotateVector(FVector::ForwardVector) * pitchToDistance;

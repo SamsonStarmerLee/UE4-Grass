@@ -25,5 +25,4 @@ private:
 	/** Curve to convert changes in pitch to changes in field of view. */
 	UPROPERTY(Category = Camera, EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 		UCurveFloat* PitchToFOVCurve;
-	
 };
