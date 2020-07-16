@@ -80,10 +80,11 @@ bool UCameraModifierKeepLineOfSight::ProcessViewRotation(
     }
 
     // Apply any rotation.
-    const float appliedAngleInRadians =
-        FMath::Clamp(desiredAngleRads, -RotationSpeed * DeltaTime, RotationSpeed * DeltaTime);
-
-    OutDeltaRot.Yaw += FMath::RadiansToDegrees(appliedAngleInRadians);
+    const float appliedAngleRads = FMath::Clamp(desiredAngleRads, -RotationSpeed * DeltaTime, RotationSpeed * DeltaTime);
+    const float desiredAngleDegs = FMath::RadiansToDegrees(desiredAngleRads);
+    const float delta = FMath::Abs(desiredAngleDegs - OutDeltaRot.Yaw) / 90.0f;
+    const float applied = FMath::InterpCircularInOut<float>(0.0f, FMath::RadiansToDegrees(appliedAngleRads), delta);
+    OutDeltaRot.Yaw += applied;
 
     return false;
 }
@@ -115,7 +116,8 @@ bool UCameraModifierKeepLineOfSight::IsInLineOfSight(const FVector& From, const 
         result, 
         From, 
         To, 
-        FQuat::Identity, LineOfSightProbeChannel,
+        FQuat::Identity, 
+        LineOfSightProbeChannel,
         FCollisionShape::MakeSphere(cameraManager->LineOfSightProbeSize), 
         queryParams);
 
