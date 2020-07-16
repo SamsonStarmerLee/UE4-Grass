@@ -9,8 +9,10 @@
 #include "Camera/CameraModifier.h"
 #include "ExpCameraModifier.generated.h"
 
-/** An expanded version of UCameraModifier, for applying effects over time. 
-    Is designed to handle the player overriding the modification. **/
+/** 
+* An expanded version of UCameraModifier, for applying effects over time. 
+* Is designed to handle the player overriding the modification. 
+**/
 UCLASS(BlueprintType, Blueprintable)
 class MOVEMENT_API UExpCameraModifier : public UCameraModifier
 {
