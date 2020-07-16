@@ -137,6 +137,11 @@ void AMovingSphere::AdjustVelocity(const float DeltaTime)
 	input = input.GetClampedToMaxSize(1.f);
 	FVector desiredVelocity = FVector(input.X, input.Y, 0.f) * MaxSpeed;
 
+	// Orient desired velocity to camera perspective.
+	desiredVelocity = Camera->GetComponentTransform().TransformVector(desiredVelocity);
+	desiredVelocity.Z = 0.0f;
+	desiredVelocity = desiredVelocity.GetSafeNormal()* MaxSpeed;
+
 	// Calculate new X and Y speeds relative to the ground.
 	float acceleration = GetGrounded() ? GroundAcceleration : AirAcceleration;
 	float newX = FMath::FInterpConstantTo(currentX, desiredVelocity.X, DeltaTime, acceleration);
