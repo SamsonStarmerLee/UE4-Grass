@@ -116,9 +116,6 @@ void AMovingSphere::UpdateState()
 	{
 		contactNormal = FVector::UpVector;
 	}
-
-	FColor col = GetGrounded() ? FColor::Black : FColor::White;
-	material->SetVectorParameterValue(TEXT("Color"), col);
 }
 
 void AMovingSphere::AdjustVelocity(const float DeltaTime)
