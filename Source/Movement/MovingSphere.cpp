@@ -4,9 +4,8 @@
 #include "Movement/Camera/ExpSpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "DrawDebugHelpers.h"
-
-//#include "GameFramework/Pawn.h"
-//#include "Components/SphereComponent.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AMovingSphere::AMovingSphere()
 {
@@ -33,6 +32,10 @@ AMovingSphere::AMovingSphere()
 	Body->BodyInstance.bLockXRotation = true;
 	Body->BodyInstance.bLockYRotation = true;
 	Body->BodyInstance.bLockZRotation = true;
+
+	PassiveGrassAffectorParticles = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Passive GrassAffector Particles"));
+	PassiveGrassAffectorParticles->SetupAttachment(Body);
+	PassiveGrassAffectorParticles->ComponentTags.Add(FName("GrassAffector"));
 }
 
 void AMovingSphere::BeginPlay()
@@ -111,10 +114,14 @@ void AMovingSphere::UpdateState()
 		{
 			contactNormal.Normalize();
 		}
+
+		PassiveGrassAffectorParticles->SetActive(true);
 	}
 	else
 	{
 		contactNormal = FVector::UpVector;
+
+		PassiveGrassAffectorParticles->SetActive(false);
 	}
 }
 
@@ -214,13 +221,6 @@ void AMovingSphere::Jump()
 		jumpSpeed = FMath::Max(jumpSpeed - alignedSpeed, 0.f);
 	}
 
-	DrawDebugLine(
-		GetWorld(),
-		GetPosition(),
-		GetPosition() + jumpDirection * 50.f,
-		FColor::Yellow,
-		false, 5.f, '\000', 10.f);
-
 	velocity += jumpDirection * jumpSpeed;
 }
 
@@ -312,25 +312,11 @@ void AMovingSphere::ProbeGround()
 					{
 						groundContactCount++;
 						contactNormal += Hit.Normal;
-
-						if (ShowDebugNormals) DrawDebugLine(
-							GetWorld(),
-							Hit.Location,
-							Hit.Location + Hit.Normal * 50.f,
-							FColor::Green,
-							false, -1.f, '\000', 10.f);
 					}
 					else if (Hit.Normal.Z > -0.01f)
 					{
 						steepContactCount++;
 						steepNormal += Hit.Normal;
-
-						if (ShowDebugNormals) DrawDebugLine(
-							GetWorld(),
-							Hit.Location,
-							Hit.Location + Hit.Normal * 50.f,
-							FColor::Red,
-							false, -1.f, '\000', 10.f);
 					}
 				}
 			}

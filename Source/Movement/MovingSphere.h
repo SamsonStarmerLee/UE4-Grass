@@ -133,4 +133,7 @@ public:
 	/** Camera turn rate in deg/sec. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera)
 		float BaseLookUpRate = 90.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = GrassAffectors)
+		class UParticleSystemComponent* PassiveGrassAffectorParticles;
 };
