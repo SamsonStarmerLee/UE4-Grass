@@ -27,6 +27,8 @@ Here a worldspace noise texture is combined with vertex colours to fade grass co
 At distance, we colourize the grass towards a tint colour. This is driven by curve (LUT) to make the effect non-linear.
 </details>
 
+---
+
 ### Emissive
 <details>
 <summary>Expand to see</summary>
@@ -35,6 +37,8 @@ At distance, we colourize the grass towards a tint colour. This is driven by cur
 
 This takes the untinted grass colour and reduces it before piping directly into emissive. This helps ensure some amount of grass colour is visible even at distance or in shadow.
 </details>
+
+---
 
 ### Camera Tilt
 <details>
@@ -48,6 +52,8 @@ Pivot point is an estimated position and comes from the Grass Interaction step.
 This is based on [this GDC talk](https://youtu.be/wavnKZNSYqU?t=1156) about the foliage of Horizon: Zero Dawn.
 </details>
 
+---
+
 ### Height Variation
 <details>
 <summary>Expand to see</summary>
@@ -57,8 +63,9 @@ This is based on [this GDC talk](https://youtu.be/wavnKZNSYqU?t=1156) about the 
 This step applies a non-animated variation to height. This same effect can be created using the UE4 placement tool, so to really justify this step, some amount of animation or something should probably be added.
 
 As-is, voronoi noise creates congruent ridges and peaks, implying the grass is doing really well in some places. True 'ridge noise' might be a good fit here.
-
 </details>
+
+---
 
 ### Grass Interaction
 <details>
@@ -73,6 +80,8 @@ This approach has some benefits. For example, particles could be spawned for exp
 This is based on the grass interaction described by Tommy Tran, found [here.](https://www.raywenderlich.com/6314-creating-interactive-grass-in-unreal-engine-4)
 </details>
 
+---
+
 ### Wind
 <details>
 <summary>Expand to see</summary>
@@ -81,6 +90,8 @@ This is based on the grass interaction described by Tommy Tran, found [here.](ht
 
 We also apply two levels of wind. One at scene-scale and another for smaller perturbations to imitate  localized gusts of wind. Both use vertex colours to avoid shifting the root of the grass around.
 </details>
+
+---
 
 ### Normal Movement
 
