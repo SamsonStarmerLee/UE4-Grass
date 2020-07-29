@@ -106,3 +106,11 @@ This technique comes from the "Boy and His Kite" demo.
 We use two scrolling normal maps to create a wind-like effect that shifts the grass normals around (at rest, these normals point straight up).
 As the normals animate, dark regions appear, which can look like wind, or cloud shadows.
 </details>
+
+---
+
+## Other
+
+Included is a basic C++ movement system. 
+
+There is also an auto-adjusting camera system. Heavily adapted from [Daedelic Entertainment's camera system](https://github.com/DaedalicEntertainment/third-person-camera) created to adhere to this [GDC talk](https://youtu.be/C7307qRmlMI), "50 Game Camera Mistakes".
