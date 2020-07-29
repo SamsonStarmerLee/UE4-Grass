@@ -2,7 +2,7 @@
 
 Stylized grass made in UE4.
 
--VIDEO GOES HERE-
+[![Video of Grass](https://img.youtube.com/vi/_E243-z-QQ0/hqdefault.jpg)](https://youtu.be/_E243-z-QQ0)
 
 Trees are from Lui's [Trees Library](https://forums.unrealengine.com/community/community-content-tools-and-tutorials/82804-free-trees-library).
 
