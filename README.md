@@ -73,7 +73,7 @@ As-is, voronoi noise creates congruent ridges and peaks, implying the grass is d
   
 ![6](Images/6.png)
 
-To affect grass, actors can release particles with a vector field texture. As long as these particles draw to custom depth, they will be captured by a downward-facing orthographic camera. This is written to a render texture which the grass samples from. Directionality can the be found by un-projecting the vector field, which is then used to rotate the grass about its axis.
+To affect grass, actors can release particles with a vector field texture. As long as these particles draw to custom depth, they will be captured by a downward-facing orthographic camera. This is written to a render texture which the grass samples from. Directionality can then be found by un-projecting the vector field, which is then used to rotate the grass about its axis.
 
 This approach has some benefits. For example, particles could be spawned for explosions to create shockwaves or other wind effects. Currently there is just one pre-made vector field texture, which only matches to circular objects. To handle more complex shapes, these fields could be generated on the fly. Potentially a simpler approach is just to use a depth buffer comparison, like you see with snow footprint simulations. This would lose the outward splay of grass blades, though.
 
