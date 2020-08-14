@@ -82,7 +82,6 @@ void AMovingSphere::Tick(float DeltaTime)
 
 	UpdateState();
 	AdjustVelocity(DeltaTime);
-
 	ProbeGround();
 	
 	if (desiredJump)
@@ -98,6 +97,12 @@ void AMovingSphere::Tick(float DeltaTime)
 
 void AMovingSphere::UpdateState()
 {
+	UpAxis = FVector::UpVector;
+
+	// Orient axis to camera perspective.
+	RightAxis = FVector::VectorPlaneProject(Camera->GetRightVector(), UpAxis);
+	ForwardAxis = FVector::VectorPlaneProject(Camera->GetForwardVector(), UpAxis);
+
 	velocity = Body->GetPhysicsLinearVelocity();
 
 	stepsSinceLastGrounded++;
@@ -105,7 +110,7 @@ void AMovingSphere::UpdateState()
 
 	ProbeGround();
 
-	if (GetGrounded() || SnapToGround()) 
+	if (GetGrounded() || SnapToGround() || CheckSteepContacts()) 
 	{
 		stepsSinceLastGrounded = 0;
 		jumpPhase = 0;
@@ -114,22 +119,18 @@ void AMovingSphere::UpdateState()
 		{
 			contactNormal.Normalize();
 		}
-
-		PassiveGrassAffectorParticles->SetActive(true);
 	}
 	else
 	{
-		contactNormal = FVector::UpVector;
-
-		PassiveGrassAffectorParticles->SetActive(false);
+		contactNormal = UpAxis;
 	}
 }
 
 void AMovingSphere::AdjustVelocity(const float DeltaTime)
 {
 	// Project right and forward vectors onto contact plane.
-	FVector xAxis = FVector::VectorPlaneProject(FVector::ForwardVector, contactNormal);
-	FVector yAxis = FVector::VectorPlaneProject(FVector::RightVector, contactNormal);
+	FVector xAxis = FVector::VectorPlaneProject(ForwardAxis, contactNormal);
+	FVector yAxis = FVector::VectorPlaneProject(RightAxis, contactNormal);
 	xAxis.Normalize();
 	yAxis.Normalize();
 
@@ -141,18 +142,21 @@ void AMovingSphere::AdjustVelocity(const float DeltaTime)
 	input = input.GetClampedToMaxSize(1.f);
 	FVector desiredVelocity = FVector(input.X, input.Y, 0.f) * MaxSpeed;
 
-	// Orient desired velocity to camera perspective.
-	desiredVelocity = Camera->GetComponentTransform().TransformVector(desiredVelocity);
-	desiredVelocity.Z = 0.0f;
-	desiredVelocity = desiredVelocity.GetSafeNormal()* MaxSpeed;
+	//// Orient desired velocity to camera perspective.
+	//desiredVelocity = Camera->GetComponentTransform().TransformVector(desiredVelocity);
+	//desiredVelocity.Z = 0.0f;
+	//desiredVelocity = desiredVelocity.GetSafeNormal()* MaxSpeed;
 
 	// Calculate new X and Y speeds relative to the ground.
 	float acceleration = GetGrounded() ? GroundAcceleration : AirAcceleration;
 	float newX = FMath::FInterpConstantTo(currentX, desiredVelocity.X, DeltaTime, acceleration);
 	float newY = FMath::FInterpConstantTo(currentY, desiredVelocity.Y, DeltaTime, acceleration);
 
+	// Gravity
+	FVector gravity = -UpAxis * Gravity * DeltaTime;
+
 	// Adjust velocity by adding the differences between the new and old speeds along the relative axes.
-	velocity += xAxis * (newX - currentX) + yAxis * (newY - currentY);
+	velocity += xAxis * (newX - currentX) + yAxis * (newY - currentY) + gravity;
 }
 
 void AMovingSphere::ClearState()
@@ -167,19 +171,9 @@ bool AMovingSphere::GotMovementInput() const
 	return !input.IsNearlyZero();
 }
 
-ACameraModificationVolume* AMovingSphere::GetCurrentCameraModificationVolume()
-{
-	return CurrentCameraVolume;
-}
-
-void AMovingSphere::SetCurrentCameraModificationVolume(ACameraModificationVolume* Volume)
-{
-	CurrentCameraVolume = Volume;
-}
-
 FVector AMovingSphere::GetPosition()
 {
-	return GetActorLocation() + FVector::UpVector * 50.f;
+	return GetActorLocation() + UpAxis * 50.f;
 }
 
 void AMovingSphere::Jump()
@@ -208,10 +202,9 @@ void AMovingSphere::Jump()
 	jumpPhase++;
 
 	// Add upward bias to jump direction
-	jumpDirection = (jumpDirection + FVector::UpVector).GetSafeNormal();
+	jumpDirection = (jumpDirection + UpAxis).GetSafeNormal();
 
-	float gravity = GetWorld()->GetGravityZ();
-	float jumpSpeed = FMath::Sqrt(-2.0f * gravity * JumpHeight);
+	float jumpSpeed = FMath::Sqrt(2.0f * Gravity * JumpHeight);
 	float alignedSpeed = FVector::DotProduct(velocity, jumpDirection);
 
 	// Limit upward velocity if jumping in quick succession.
@@ -250,7 +243,7 @@ bool AMovingSphere::SnapToGround()
 	// Raycast to find ground surface
 	FHitResult Hit;
 	FCollisionQueryParams TraceParams(FName(TEXT("SnapToGround Trace")), false, this);
-	FVector direction = (FVector::DownVector * ProbeDistance);
+	FVector direction = (-UpAxis * ProbeDistance);
 
 	if (GetWorld()->LineTraceSingleByChannel(
 		OUT Hit,
@@ -260,8 +253,10 @@ bool AMovingSphere::SnapToGround()
 		TraceParams
 	))
 	{
-		if (Hit.Normal.Z < minGroundDotProduct)
+		float upDot = FVector::DotProduct(UpAxis, Hit.Normal);
+		if (upDot < minGroundDotProduct)
 		{
+			// Surface is too angled to snap to.
 			return false;
 		}
 
@@ -273,13 +268,32 @@ bool AMovingSphere::SnapToGround()
 		// Adjust velocity to align with the ground.
 		float dot = FVector::DotProduct(velocity, Hit.Normal);
 
-		// Only re-align if we are moving up away from the surface.
 		if (dot > 0.f)
 		{
+			// Only re-align if we are moving up away from the surface.
 			velocity = (velocity - Hit.Normal * dot).GetSafeNormal() * speed;
 		}
 
 		return true;
+	}
+
+	return false;
+}
+
+bool AMovingSphere::CheckSteepContacts()
+{
+	if (steepContactCount > 1)
+	{
+		steepNormal.Normalize();
+		
+		float upDot = FVector::DotProduct(UpAxis, steepNormal);
+		if (upDot >= minGroundDotProduct)
+		{
+			steepContactCount = 0;
+			groundContactCount = 1;
+			contactNormal = steepNormal;
+			return true;
+		}
 	}
 
 	return false;
@@ -308,12 +322,14 @@ void AMovingSphere::ProbeGround()
 					GroundChannel,
 					TraceParams))
 				{
-					if (Hit.Normal.Z >= minGroundDotProduct)
+					float upDot = FVector::DotProduct(UpAxis, Hit.Normal);
+
+					if (upDot >= minGroundDotProduct)
 					{
 						groundContactCount++;
 						contactNormal += Hit.Normal;
 					}
-					else if (Hit.Normal.Z > -0.01f)
+					else if (upDot > -0.01f)
 					{
 						steepContactCount++;
 						steepNormal += Hit.Normal;
@@ -341,6 +357,16 @@ void AMovingSphere::Move_YAxis(float AxisValue)
 void AMovingSphere::InputJump()
 {
 	desiredJump = true;
+}
+
+ACameraModificationVolume* AMovingSphere::GetCurrentCameraModificationVolume()
+{
+	return CurrentCameraVolume;
+}
+
+void AMovingSphere::SetCurrentCameraModificationVolume(ACameraModificationVolume* Volume)
+{
+	CurrentCameraVolume = Volume;
 }
 
 #if WITH_EDITOR

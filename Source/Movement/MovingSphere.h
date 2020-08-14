@@ -23,8 +23,14 @@ public:
 protected:
 	ACameraModificationVolume* CurrentCameraVolume;
 
+	FVector UpAxis;
+	FVector RightAxis; 
+	FVector ForwardAxis;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	bool CheckSteepContacts();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
 		UExpSpringArmComponent* CameraBoom;
@@ -136,4 +142,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = GrassAffectors)
 		class UParticleSystemComponent* PassiveGrassAffectorParticles;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Physics)
+		float Gravity = 980.0f;
 };
