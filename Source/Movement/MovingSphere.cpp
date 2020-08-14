@@ -32,10 +32,6 @@ AMovingSphere::AMovingSphere()
 	Body->BodyInstance.bLockXRotation = true;
 	Body->BodyInstance.bLockYRotation = true;
 	Body->BodyInstance.bLockZRotation = true;
-
-	PassiveGrassAffectorParticles = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Passive GrassAffector Particles"));
-	PassiveGrassAffectorParticles->SetupAttachment(Body);
-	PassiveGrassAffectorParticles->ComponentTags.Add(FName("GrassAffector"));
 }
 
 void AMovingSphere::BeginPlay()
@@ -61,8 +57,8 @@ void AMovingSphere::SetupPlayerInputComponent(class UInputComponent* PlayerInput
 	// "turn" handles devices with an absolute delta, such as mouse.
 	// "turnrate" is for devices we choose to treat as a rate of change, such as a stick.
 	InputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	InputComponent->BindAxis("TurnRate", this, &AMovingSphere::TurnAtRate);
 	InputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	InputComponent->BindAxis("TurnRate", this, &AMovingSphere::TurnAtRate);
 	InputComponent->BindAxis("LookUpRAte", this, &AMovingSphere::LookUpAtRate);
 }
 
@@ -141,11 +137,6 @@ void AMovingSphere::AdjustVelocity(const float DeltaTime)
 	// Get input and desired velocity
 	input = input.GetClampedToMaxSize(1.f);
 	FVector desiredVelocity = FVector(input.X, input.Y, 0.f) * MaxSpeed;
-
-	//// Orient desired velocity to camera perspective.
-	//desiredVelocity = Camera->GetComponentTransform().TransformVector(desiredVelocity);
-	//desiredVelocity.Z = 0.0f;
-	//desiredVelocity = desiredVelocity.GetSafeNormal()* MaxSpeed;
 
 	// Calculate new X and Y speeds relative to the ground.
 	float acceleration = GetGrounded() ? GroundAcceleration : AirAcceleration;
